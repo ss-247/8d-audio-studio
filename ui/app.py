@@ -17,12 +17,16 @@ from engine.spatial.rotation import make_path, CirclePath
 import ui.panels.transport as transport_panel
 import ui.panels.waveform as waveform_panel
 import ui.panels.spatial_viz as spatial_panel
+import ui.panels.effects as effects_panel
+from engine.effects.chain import EffectsChain
 
 
 class App:
     def __init__(self) -> None:
         self.state = AppState()
+        self.state.effects_chain = EffectsChain()
         self.engine = PlaybackEngine()
+        self.engine.set_effects_chain(self.state.effects_chain)
         self._rotation_path = CirclePath(speed_hz=0.15)
         self._processing_thread: threading.Thread | None = None
         self._hrtf = None           # loaded once, reused for both preview and export
@@ -107,6 +111,10 @@ class App:
             dpg.add_spacer(height=10)
             dpg.add_separator()
             dpg.add_spacer(height=10)
+            effects_panel.setup(self.state, parent="main_window")
+            dpg.add_spacer(height=10)
+            dpg.add_separator()
+            dpg.add_spacer(height=10)
             spatial_panel.setup(self.state, parent="main_window")
 
     # ------------------------------------------------------------------
@@ -132,6 +140,7 @@ class App:
         self._handle_spatial_preview()
         transport_panel.update(self.state, self.engine)
         waveform_panel.update(self.state)
+        effects_panel.update(self.state)
         spatial_panel.update(self.state)
 
     def _sync_rotation_path(self) -> None:
@@ -245,6 +254,10 @@ class App:
         try:
             audio = self.state.audio_data
             sr    = self.state.sample_rate
+
+            # Apply effects chain before spatial processing
+            if self.state.effects_chain is not None:
+                audio = self.state.effects_chain.process(audio, sr)
 
             if self.state.spatial_mode == "8d":
                 from engine.spatial.hrtf import HRTFDatabase

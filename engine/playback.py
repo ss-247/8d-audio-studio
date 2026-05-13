@@ -84,6 +84,9 @@ class PlaybackEngine:
         self._tail_l: np.ndarray = np.zeros(0, dtype=np.float32)
         self._tail_r: np.ndarray = np.zeros(0, dtype=np.float32)
 
+        # Effects chain (set via set_effects_chain)
+        self._effects_chain = None  # EffectsChain | None
+
     # ------------------------------------------------------------------
     # Spatial preview control
     # ------------------------------------------------------------------
@@ -107,6 +110,10 @@ class PlaybackEngine:
             ir_len = self._hrtf.ir_length
             self._tail_l = np.zeros(ir_len - 1, dtype=np.float32)
             self._tail_r = np.zeros(ir_len - 1, dtype=np.float32)
+
+    def set_effects_chain(self, chain) -> None:
+        """Attach an EffectsChain; pass None to bypass effects."""
+        self._effects_chain = chain
 
     # ------------------------------------------------------------------
     # Loading
@@ -178,16 +185,20 @@ class PlaybackEngine:
     def stop(self) -> None:
         self._close_stream()
         self._position = 0
+        if self._effects_chain is not None:
+            self._effects_chain.reset_stream()
 
     def seek(self, position: float) -> None:
         if self._audio is None:
             return
         self._position = max(0, min(int(position * len(self._audio)), len(self._audio) - 1))
-        # Reset overlap-add tails on seek to avoid glitches
+        # Reset overlap-add tails and effects state on seek to avoid glitches
         if self._hrtf is not None:
             ir_len = self._hrtf.ir_length
             self._tail_l = np.zeros(ir_len - 1, dtype=np.float32)
             self._tail_r = np.zeros(ir_len - 1, dtype=np.float32)
+        if self._effects_chain is not None:
+            self._effects_chain.reset_stream()
 
     # ------------------------------------------------------------------
     # State queries
@@ -238,6 +249,10 @@ class PlaybackEngine:
 
         n     = min(frames, remaining)
         chunk = audio[pos : pos + n]   # (n, src_channels)
+
+        # Apply effects before spatial processing
+        if self._effects_chain is not None:
+            chunk = self._effects_chain.process_block(chunk, self._sr)
 
         if self._spatial and self._hrtf is not None and self._rot_path is not None:
             self._fill_spatial(outdata, chunk, frames, n, pos)
