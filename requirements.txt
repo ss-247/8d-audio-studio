@@ -1,0 +1,32 @@
+# GUI
+dearpygui
+dearpygui-ext
+
+# Audio I/O & Playback
+sounddevice
+soundfile
+pydub
+ffmpeg-python
+
+# DSP & Analysis
+numpy
+scipy
+librosa
+
+# Effects
+pedalboard
+
+# Spatial / 8D
+sofar
+
+# Composition & MIDI
+pretty_midi
+mido
+pyfluidsynth
+
+# Sampling & Source Separation
+# spleeter — installed in its own venv (TF/NumPy conflicts). See Stage 8 setup.
+requests
+
+# Data & Config
+python-dotenv

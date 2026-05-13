@@ -1,0 +1,41 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+
+# Data — large binary assets, not committed
+data/hrtf/
+data/soundfonts/
+data/studio.db
+
+# User content — stays local
+data/samples/
+data/projects/
+data/converted/
+
+# Test output files
+data/samples/test_*.wav
+data/samples/test_*.mp3
+data/samples/test_*.flac
+data/samples/selftest.*
+data/samples/test_binaural.wav
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
