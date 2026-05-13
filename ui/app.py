@@ -18,15 +18,27 @@ import ui.panels.transport as transport_panel
 import ui.panels.waveform as waveform_panel
 import ui.panels.spatial_viz as spatial_panel
 import ui.panels.effects as effects_panel
+import ui.panels.sequencer as sequencer_panel
 from engine.effects.chain import EffectsChain
+from engine.composition.sequencer import Pattern, Sequencer
+from engine.composition.synth import FluidSynthEngine
 
 
 class App:
     def __init__(self) -> None:
         self.state = AppState()
         self.state.effects_chain = EffectsChain()
+        self.state.pattern = Pattern.default()
         self.engine = PlaybackEngine()
         self.engine.set_effects_chain(self.state.effects_chain)
+        self._synth = FluidSynthEngine()
+        self._sequencer = Sequencer(
+            bpm=self.state.pattern.bpm,
+            pattern=self.state.pattern,
+            on_step=self._on_seq_step,
+        )
+        # Store sequencer on state so UI panels can reach it
+        self.state._sequencer = self._sequencer
         self._rotation_path = CirclePath(speed_hz=0.15)
         self._processing_thread: threading.Thread | None = None
         self._hrtf = None           # loaded once, reused for both preview and export
@@ -111,6 +123,10 @@ class App:
             dpg.add_spacer(height=10)
             dpg.add_separator()
             dpg.add_spacer(height=10)
+            sequencer_panel.setup(self.state, parent="main_window")
+            dpg.add_spacer(height=10)
+            dpg.add_separator()
+            dpg.add_spacer(height=10)
             effects_panel.setup(self.state, parent="main_window")
             dpg.add_spacer(height=10)
             dpg.add_separator()
@@ -138,10 +154,29 @@ class App:
             self.state.rotation_elevation = el
 
         self._handle_spatial_preview()
+        self._sync_sequencer_state()
         transport_panel.update(self.state, self.engine)
         waveform_panel.update(self.state)
+        sequencer_panel.update(self.state)
         effects_panel.update(self.state)
         spatial_panel.update(self.state)
+
+    def _sync_sequencer_state(self) -> None:
+        """Pull current step from sequencer into AppState for UI update."""
+        if self._sequencer.is_playing:
+            self.state.current_step      = self._sequencer.current_step
+            self.state.sequencer_playing = True
+        elif self.state.sequencer_playing and not self._sequencer.is_playing:
+            self.state.sequencer_playing = False
+            self.state.current_step      = 0
+
+    def _on_seq_step(self, track_idx: int, step_idx: int, velocity: int) -> None:
+        """Called from Sequencer thread for every active step."""
+        pattern = self.state.pattern
+        if pattern is None:
+            return
+        track = pattern.tracks[track_idx]
+        self._synth.note_on(track.channel, track.note, velocity)
 
     def _sync_rotation_path(self) -> None:
         key = self.state.rotation_path
