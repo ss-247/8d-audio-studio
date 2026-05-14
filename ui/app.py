@@ -19,6 +19,7 @@ import ui.panels.waveform as waveform_panel
 import ui.panels.spatial_viz as spatial_panel
 import ui.panels.effects as effects_panel
 import ui.panels.sequencer as sequencer_panel
+import ui.panels.piano_roll as piano_roll_panel
 from engine.effects.chain import EffectsChain
 from engine.composition.sequencer import Pattern, Sequencer
 from engine.composition.synth import FluidSynthEngine
@@ -105,7 +106,7 @@ class App:
     def _build_main_window(self) -> None:
         with dpg.window(
             tag="main_window", no_title_bar=True, no_move=True,
-            no_resize=True, no_scrollbar=True, menubar=True,
+            no_resize=True, menubar=True,
         ):
             with dpg.menu_bar():
                 with dpg.menu(label="File"):
@@ -120,6 +121,10 @@ class App:
             dpg.add_separator()
             dpg.add_spacer(height=10)
             waveform_panel.setup(self.state, self.engine, parent="main_window")
+            dpg.add_spacer(height=10)
+            dpg.add_separator()
+            dpg.add_spacer(height=10)
+            piano_roll_panel.setup(self.state, self.engine, parent="main_window")
             dpg.add_spacer(height=10)
             dpg.add_separator()
             dpg.add_spacer(height=10)
@@ -157,6 +162,7 @@ class App:
         self._sync_sequencer_state()
         transport_panel.update(self.state, self.engine)
         waveform_panel.update(self.state)
+        piano_roll_panel.update(self.state)
         sequencer_panel.update(self.state)
         effects_panel.update(self.state)
         spatial_panel.update(self.state)

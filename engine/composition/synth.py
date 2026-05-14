@@ -158,11 +158,11 @@ class FluidSynthEngine:
             import fluidsynth
             fs = fluidsynth.Synth(samplerate=float(_SR))
             fs.start(driver="dsound")
-            self._fs       = fs
+            self._fs        = fs
             self._use_fluid = True
         except Exception:
             self._use_fluid = False
-            self._open_fallback_stream()
+            # Fallback stream is opened lazily on first note_on call
 
     def load_soundfont(self, path: Path) -> bool:
         """Load an SF2 file. Returns True on success."""
@@ -198,6 +198,8 @@ class FluidSynthEngine:
             except Exception:
                 pass
         # Fallback: generate sample and queue into mix buffer
+        if self._stream is None:
+            self._open_fallback_stream()
         sample = _synth_sample(channel, note, velocity)
         self._queue_sample(sample)
 
