@@ -119,6 +119,16 @@ class PlaybackEngine:
     # Loading
     # ------------------------------------------------------------------
 
+    def load_audio_array(self, audio: np.ndarray, sr: int) -> None:
+        """Load a pre-rendered numpy array directly (skips file I/O)."""
+        self.stop()
+        arr = np.asarray(audio, dtype=np.float32)
+        if arr.ndim == 1:
+            arr = arr[:, np.newaxis]
+        self._audio    = arr
+        self._sr       = int(sr)
+        self._position = 0
+
     def load_audio(self, path: Path) -> Tuple[np.ndarray, int]:
         path = Path(path)
         suffix = path.suffix.lower()
